@@ -2,14 +2,14 @@
 ## Descrição
 Este repositório contém a **API back‑end** do projeto **TriagemFacil**, responsável por gerenciar a triagem de pacientes/emergências. A aplicação foi desenvolvida em **.NET 7** utilizando **ASP.NET Core Web API**, **Entity Framework Core** e segue a arquitetura limpa (Clean Architecture) para facilitar a manutenção e a escalabilidade.
 ## Tecnologias
-- **.NET 7**
-- **ASP.NET Core 7** (Web API)
+- **.NET 8**
+- **ASP.NET Core 8** (Web API)
 - **Entity Framework Core** (code‑first)
 - **SQL Server** (ou outro provedor suportado pelo EF Core)
 - **Swagger** para documentação automática da API
 - **GitHub Actions** (CI simples – opcional)
 ## Pré‑requisitos
-- [.NET SDK 7.x](https://dotnet.microsoft.com/download) instalado
+- [.NET SDK 8.x](https://dotnet.microsoft.com/download) instalado
 - **Git**
 - **SQL Server** (ou SQLite para testes locais)
 - (Opcional) **Visual Studio 2022** ou **VS Code** com extensões C#
