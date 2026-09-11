@@ -1,6 +1,6 @@
 # TriagemFacil – Back‑End
 ## Descrição
-Este repositório contém a **API back‑end** do projeto **TriagemFacil**, responsável por gerenciar a triagem de pacientes/emergências. A aplicação foi desenvolvida em **.NET 7** utilizando **ASP.NET Core Web API**, **Entity Framework Core** e segue a arquitetura limpa (Clean Architecture) para facilitar a manutenção e a escalabilidade.
+Este repositório contém a **API back‑end** do projeto **TriagemFacil**, responsável por gerenciar a triagem de pacientes/emergências. A aplicação foi desenvolvida em **.NET 8** utilizando **ASP.NET Core Web API**, **Entity Framework Core** e segue a arquitetura limpa (Clean Architecture) para facilitar a manutenção e a escalabilidade.
 ## Tecnologias
 - **.NET 8**
 - **ASP.NET Core 8** (Web API)
