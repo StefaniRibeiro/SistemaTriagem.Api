@@ -1,5 +1,5 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace SistemaTriagem.Api.Services;
@@ -18,6 +18,8 @@ public interface IOllamaService
 /// Implementa a etapa de "Generation" da arquitetura RAG: recebe o contexto já
 /// recuperado do ChromaDB e o injeta no prompt do modelo antes de gerar a resposta,
 /// reduzindo o risco de alucinação (RNF04 — nenhum dado é enviado a serviços externos).
+/// Quando Ollama:ApiKey está configurada (ambiente cloud sem GPU), usa endpoint
+/// compatível com OpenAI/Groq mantendo o mesmo prompt e fluxo RAG.
 /// </summary>
 public class OllamaService : IOllamaService
 {
@@ -75,18 +77,26 @@ public class OllamaService : IOllamaService
 
         mensagens.Add(new { role = "user", content = novaMensagemPaciente });
 
-        var baseUrl = _config["Ollama:BaseUrl"];
-        var model = _config["Ollama:Model"];
-
-        var payload = new
-        {
-            model,
-            messages = mensagens,
-            stream = false
-        };
+        var baseUrl = (_config["Ollama:BaseUrl"] ?? "http://localhost:11434").TrimEnd('/');
+        var model = _config["Ollama:Model"] ?? "llama3.2";
+        var apiKey = _config["Ollama:ApiKey"];
 
         try
         {
+            // Se ApiKey estiver configurada (ex: Groq em produção), usa endpoint OpenAI-compatible;
+            // caso contrário, mantém a chamada nativa ao Ollama local.
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                return await ChamarApiCompativelAsync(baseUrl, apiKey, model, mensagens);
+            }
+
+            var payload = new
+            {
+                model,
+                messages = mensagens,
+                stream = false
+            };
+
             var response = await _httpClient.PostAsJsonAsync($"{baseUrl}/api/chat", payload);
             response.EnsureSuccessStatusCode();
 
@@ -96,13 +106,40 @@ public class OllamaService : IOllamaService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Falha ao chamar o Ollama (verifique se o serviço está em execução em {BaseUrl})", baseUrl);
+            _logger.LogError(ex, "Falha ao chamar o serviço de IA em {BaseUrl}", baseUrl);
             return "No momento não consigo me comunicar com o assistente de IA. " +
                    "Um atendente poderá te ajudar a continuar a triagem manualmente.";
         }
     }
 
+    private async Task<string> ChamarApiCompativelAsync(string baseUrl, string apiKey, string model, List<object> mensagens)
+    {
+        var payload = new { model, messages = mensagens };
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/chat/completions");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        request.Content = JsonContent.Create(payload);
+
+        var response = await _httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var resultado = await response.Content.ReadFromJsonAsync<OpenAiChatResponse>();
+        return resultado?.Choices?.FirstOrDefault()?.Message?.Content?.Trim()
+               ?? "Desculpe, não consegui processar sua resposta agora. Pode repetir?";
+    }
+
     private class OllamaChatResponse
+    {
+        [JsonPropertyName("message")]
+        public OllamaMessage? Message { get; set; }
+    }
+
+    private class OpenAiChatResponse
+    {
+        [JsonPropertyName("choices")]
+        public List<OpenAiChoice>? Choices { get; set; }
+    }
+
+    private class OpenAiChoice
     {
         [JsonPropertyName("message")]
         public OllamaMessage? Message { get; set; }
