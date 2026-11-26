@@ -4,6 +4,9 @@ using SistemaTriagem.Api.Data;
 using SistemaTriagem.Api.DTOs;
 using SistemaTriagem.Api.Models;
 using SistemaTriagem.Api.Services;
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace SistemaTriagem.Api.Controllers;
 
@@ -14,11 +17,13 @@ public class ChatbotController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IOllamaService _ollamaService;
+    private readonly ITriagemService _triagemService;
 
-    public ChatbotController(AppDbContext db, IOllamaService ollamaService)
+    public ChatbotController(AppDbContext db, IOllamaService ollamaService, ITriagemService triagemService)
     {
         _db = db;
         _ollamaService = ollamaService;
+        _triagemService = triagemService;
     }
 
     /// <summary>
@@ -50,11 +55,29 @@ public class ChatbotController : ControllerBase
         _db.Mensagens.Add(mensagemPaciente);
         await _db.SaveChangesAsync();
 
+        // Atualiza a prioridade preliminar para que a equipe veja sinais de risco
+        // no painel durante a conversa.
+        var relatosPaciente = await _db.Mensagens
+            .Where(m => m.TriagemId == triagem.Id && m.Origem == OrigemMensagem.Paciente)
+            .OrderBy(m => m.Timestamp)
+            .Select(m => m.Conteudo)
+            .ToListAsync();
+        var prioridadeSugerida = _triagemService.ClassificarMensagensPaciente(relatosPaciente);
+        if (prioridadeSugerida is not null &&
+            (triagem.Prioridade is null || prioridadeSugerida.Value < triagem.Prioridade.Value))
+            triagem.Prioridade = prioridadeSugerida.Value;
+        await _db.SaveChangesAsync();
+
         var historico = triagem.Mensagens
             .OrderBy(m => m.Timestamp)
             .Select(m => (m.Origem.ToString(), m.Conteudo));
 
         var respostaTexto = await _ollamaService.GerarRespostaTriagemAsync(historico, request.Conteudo);
+        if (ContemEncaminhamentoParaOutroServico(respostaTexto))
+        {
+            respostaTexto = "Entendi. Vou registrar o que você relatou para a equipe da unidade. " +
+                "O que mais você está sentindo?";
+        }
 
         var mensagemChatbot = new Mensagem
         {
@@ -69,6 +92,18 @@ public class ChatbotController : ControllerBase
     }
 
     /// <summary>Retorna o histórico de mensagens de uma triagem (usado para renderizar a Tela 2).</summary>
+    private static bool ContemEncaminhamentoParaOutroServico(string resposta)
+    {
+        var semAcentos = string.Concat(resposta
+            .Normalize(NormalizationForm.FormD)
+            .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark));
+        var texto = semAcentos.ToLowerInvariant().Replace('\u2011', '-');
+
+        return texto.Contains("pronto-socorro") || texto.Contains("servico de emergencia") ||
+            Regex.IsMatch(texto,
+                @"\b(procure|busque|va|dirija-se|ligue|acione)\b.{0,100}\b(unidade|hospital|pronto|emergencia|ajuda|profissional)\b");
+    }
+
     [HttpGet("{triagemId:int}/historico")]
     public async Task<ActionResult<List<MensagemDto>>> ObterHistorico(int triagemId)
     {

@@ -55,7 +55,10 @@ public class TriagemController : ControllerBase
             });
         }
 
-        var prioridade = _triagemService.ClassificarPrioridade(triagem.Sintomas);
+        var prioridadeCalculada = _triagemService.ClassificarPrioridade(triagem.Sintomas);
+        var prioridade = triagem.Prioridade is not null && triagem.Prioridade.Value < prioridadeCalculada
+            ? triagem.Prioridade.Value
+            : prioridadeCalculada;
 
         triagem.Prioridade = prioridade;
         triagem.Status = StatusTriagem.Finalizada;

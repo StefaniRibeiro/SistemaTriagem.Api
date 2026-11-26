@@ -40,8 +40,9 @@ public class OllamaService : IOllamaService
         - Responda sempre em texto simples. Nao chame ferramentas, funcoes ou produza saida em JSON.
         - Baseie-se no contexto clínico fornecido (discriminadores do Sistema de Triagem de Manchester)
           apenas para guiar quais perguntas fazer, nunca para informar o paciente sobre gravidade.
-        - Se identificar sinais de risco (ex.: dor torácica intensa, falta de ar grave, sangramento
-          importante), oriente o paciente a procurar imediatamente um profissional presente na unidade.
+        - Nao informe diagnostico nem classifique prioridade ou cor no chat; essa sugestao e calculada pelo sistema e mostrada no painel profissional.
+        - O paciente ja esta em uma UPA. Nunca encerre a conversa dizendo para procurar outro servico ou pronto-socorro.
+        - Se houver sintomas preocupantes, continue a coleta essencial com perguntas curtas. Nao de orientacoes medicas ou de encaminhamento.
         """;
 
     public OllamaService(HttpClient httpClient, IConfiguration config, IChromaDbService chromaDbService, ILogger<OllamaService> logger)

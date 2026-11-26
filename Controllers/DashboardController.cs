@@ -64,6 +64,10 @@ public class DashboardController : ControllerBase
             Prioridade = t.Prioridade != null ? t.Prioridade.ToString() : null,
             Status = t.Status.ToString(),
             PrincipalSintoma = t.Sintomas.Select(s => s.Descricao).FirstOrDefault()
+                ?? t.Mensagens.Where(m => m.Origem == OrigemMensagem.Paciente)
+                    .OrderBy(m => m.Timestamp)
+                    .Select(m => m.Conteudo)
+                    .FirstOrDefault()
         }).ToListAsync();
 
         return Ok(resultado);
