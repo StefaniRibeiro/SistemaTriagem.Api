@@ -69,8 +69,9 @@ public class PacienteController : ControllerBase
         {
             TriagemId = triagem.Id,
             Origem = OrigemMensagem.Chatbot,
-            Conteudo = $"Olá, {paciente.Nome.Split(' ')[0]}! Vou fazer algumas perguntas rápidas " +
-                       "para entender melhor como você está se sentindo hoje. Pode ficar à vontade!"
+            Conteudo = $"Olá, {paciente.Nome.Split(' ')[0]}! O que você está sentindo hoje? " +
+                       "Conte com suas palavras. Depois vou fazer algumas perguntas, uma de cada vez, " +
+                       "para entender melhor e ajudar na triagem."
         });
         await _db.SaveChangesAsync();
 

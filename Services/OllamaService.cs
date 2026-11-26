@@ -120,6 +120,12 @@ public class OllamaService : IOllamaService
         request.Content = JsonContent.Create(payload);
 
         var response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            _logger.LogError("API de IA retornou HTTP {StatusCode}: {ErrorBody}",
+                (int)response.StatusCode, errorBody);
+        }
         response.EnsureSuccessStatusCode();
 
         var resultado = await response.Content.ReadFromJsonAsync<OpenAiChatResponse>();
