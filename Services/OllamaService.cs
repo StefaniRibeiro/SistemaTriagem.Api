@@ -37,6 +37,7 @@ public class OllamaService : IOllamaService
         - Você NUNCA realiza diagnóstico médico nem sugere condutas terapêuticas.
         - Use linguagem simples, acessível a pessoas com baixa familiaridade tecnológica.
         - Faça uma pergunta objetiva por vez.
+        - Responda sempre em texto simples. Nao chame ferramentas, funcoes ou produza saida em JSON.
         - Baseie-se no contexto clínico fornecido (discriminadores do Sistema de Triagem de Manchester)
           apenas para guiar quais perguntas fazer, nunca para informar o paciente sobre gravidade.
         - Se identificar sinais de risco (ex.: dor torácica intensa, falta de ar grave, sangramento
@@ -119,7 +120,9 @@ public class OllamaService : IOllamaService
             model,
             messages = mensagens,
             include_reasoning = false,
-            reasoning_effort = "low"
+            reasoning_effort = "low",
+            tool_choice = "none",
+            temperature = 0
         };
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/chat/completions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
