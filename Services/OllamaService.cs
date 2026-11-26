@@ -114,7 +114,13 @@ public class OllamaService : IOllamaService
 
     private async Task<string> ChamarApiCompativelAsync(string baseUrl, string apiKey, string model, List<object> mensagens)
     {
-        var payload = new { model, messages = mensagens };
+        var payload = new
+        {
+            model,
+            messages = mensagens,
+            include_reasoning = false,
+            reasoning_effort = "low"
+        };
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/chat/completions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         request.Content = JsonContent.Create(payload);
