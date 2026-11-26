@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SistemaTriagem.Api.Data;
@@ -46,10 +47,15 @@ builder.Services.AddAuthorization();
 
 // ---------- CORS (RNF01/RNF10 — acesso via ReactJS em outra origem) ----------
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+var extraOrigins = builder.Configuration["Cors:AllowedOriginsCsv"]?
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    ?? Array.Empty<string>();
+var allOrigins = allowedOrigins.Concat(extraOrigins).Distinct().ToArray();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
-        policy.WithOrigins(allowedOrigins)
+        policy.WithOrigins(allOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
@@ -63,16 +69,23 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Suporte a proxy reverso em produção (Render, Railway, Nginx, etc.)
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
 app.UseCors("FrontendPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }));
 app.MapControllers();
 
 app.Run();
