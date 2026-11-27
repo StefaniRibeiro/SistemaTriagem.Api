@@ -22,7 +22,11 @@ public record EnviarMensagemResponse(string RespostaChatbot, int MensagemPacient
 // ---------- Finalização da triagem (RF07, RF08, RF11) ----------
 public record SintomaInputDto(string Descricao, int? Intensidade, string? Duracao, string? DiscriminadorManchester);
 public record FinalizarTriagemRequest(int TriagemId, List<SintomaInputDto> Sintomas, string? Observacoes);
-public record FinalizarTriagemResponse(int TriagemId, string PrioridadeSugerida, bool FluxoAutomacaoDisparado);
+public record FinalizarTriagemResponse(
+    int TriagemId,
+    string PrioridadeSugerida,
+    bool FluxoAutomacaoDisparado,
+    string MensagemFinal);
 
 // ---------- Painel administrativo (RF09, RF10) ----------
 public class TriagemResumoDto

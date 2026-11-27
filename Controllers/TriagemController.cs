@@ -65,6 +65,14 @@ public class TriagemController : ControllerBase
         triagem.Observacoes = request.Observacoes;
         triagem.FinalizadaEm = DateTime.UtcNow;
 
+        const string mensagemFinal = "Triagem realizada. Aguarde na unidade; a equipe chamará você pelo nome.";
+        triagem.Mensagens.Add(new Mensagem
+        {
+            TriagemId = triagem.Id,
+            Origem = OrigemMensagem.Chatbot,
+            Conteudo = mensagemFinal
+        });
+
         await _db.SaveChangesAsync();
 
         // RF08: dispara notificação via n8n (webhook -> automation-n8n/workflow_triagem.json)
@@ -90,6 +98,6 @@ public class TriagemController : ControllerBase
         });
         await _db.SaveChangesAsync();
 
-        return Ok(new FinalizarTriagemResponse(triagem.Id, prioridade.ToString(), disparado));
+        return Ok(new FinalizarTriagemResponse(triagem.Id, prioridade.ToString(), disparado, mensagemFinal));
     }
 }
