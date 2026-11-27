@@ -16,7 +16,8 @@ namespace SistemaTriagem.Api.Controllers;
 public class ChatbotController : ControllerBase
 {
     private const int MaximoPerguntasAcompanhamento = 3;
-    private const string PerguntaFebre = "Voc\u00ea est\u00e1 com febre?";
+    private const string PerguntaFebre = "Você está com febre?";
+    private const string PerguntaTemperatura = "Qual temperatura você mediu?";
     private const string PerguntaAlergiaMedicamento = "Voc\u00ea tem alergia a algum medicamento?";
     private const string MensagemColetaConcluida = "J\u00e1 registrei as informa\u00e7\u00f5es principais. Toque em \"Concluir triagem\" para enviar ao profissional.";
     private readonly AppDbContext _db;
@@ -72,20 +73,40 @@ public class ChatbotController : ControllerBase
             triagem.Prioridade = prioridadeSugerida.Value;
         await _db.SaveChangesAsync();
 
-        var respostasAnteriores = triagem.Mensagens.Count(m => m.Origem == OrigemMensagem.Chatbot);
-        var perguntasAcompanhamento = Math.Max(0, respostasAnteriores - 1); // ignora a mensagem inicial
-        var coletaConcluida = perguntasAcompanhamento >= MaximoPerguntasAcompanhamento;
+        var respostasChatbot = await _db.Mensagens
+            .Where(m => m.TriagemId == triagem.Id && m.Origem == OrigemMensagem.Chatbot)
+            .OrderBy(m => m.Id)
+            .Select(m => m.Conteudo)
+            .ToListAsync();
+        var ultimaRespostaChatbot = respostasChatbot.LastOrDefault();
+        var mensagensPadrao = new HashSet<string>(StringComparer.Ordinal)
+        {
+            PerguntaFebre,
+            PerguntaTemperatura,
+            PerguntaAlergiaMedicamento,
+            MensagemColetaConcluida
+        };
+        var perguntasAdicionaisFeitas = respostasChatbot
+            .Skip(1) // ignora a mensagem inicial de boas-vindas
+            .Count(m => !mensagensPadrao.Contains(m));
+        var coletaConcluida = perguntasAdicionaisFeitas >= MaximoPerguntasAcompanhamento;
 
         string respostaTexto;
         if (coletaConcluida)
         {
             respostaTexto = MensagemColetaConcluida;
         }
-        else if (perguntasAcompanhamento == 0)
+        else if (respostasChatbot.Count <= 1)
         {
             respostaTexto = PerguntaFebre;
         }
-        else if (perguntasAcompanhamento == 1)
+        else if (ultimaRespostaChatbot == PerguntaFebre)
+        {
+            respostaTexto = RespondeuSimParaFebre(request.Conteudo) && !InformouTemperatura(request.Conteudo)
+                ? PerguntaTemperatura
+                : PerguntaAlergiaMedicamento;
+        }
+        else if (ultimaRespostaChatbot == PerguntaTemperatura)
         {
             respostaTexto = PerguntaAlergiaMedicamento;
         }
@@ -98,8 +119,8 @@ public class ChatbotController : ControllerBase
             respostaTexto = await _ollamaService.GerarRespostaTriagemAsync(historico, request.Conteudo);
             if (ContemEncaminhamentoParaOutroServico(respostaTexto))
             {
-                respostaTexto = "Entendi. Vou registrar o que voc\u00ea relatou para a equipe da unidade. " +
-                    "O que mais voc\u00ea est\u00e1 sentindo?";
+                respostaTexto = "Entendi. Vou registrar o que você relatou para a equipe da unidade. " +
+                    "O que mais você está sentindo?";
             }
             respostaTexto = LimitarUmaPergunta(respostaTexto);
         }
@@ -128,6 +149,23 @@ public class ChatbotController : ControllerBase
             Regex.IsMatch(texto,
                 @"\b(procure|busque|va|dirija-se|ligue|acione)\b.{0,100}\b(unidade|hospital|pronto|emergencia|ajuda|profissional)\b");
     }
+
+    private static bool RespondeuSimParaFebre(string resposta)
+    {
+        var normalizada = string.Concat(resposta
+            .Normalize(NormalizationForm.FormD)
+            .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark))
+            .ToLowerInvariant()
+            .Trim();
+
+        if (Regex.IsMatch(normalizada, @"^(nao|sem|negativo)\b"))
+            return false;
+
+        return Regex.IsMatch(normalizada, @"\b(sim|estou|tenho|tive|estava)\b");
+    }
+
+    private static bool InformouTemperatura(string resposta) =>
+        Regex.IsMatch(resposta, @"\b(?:3[4-9]|4[0-5])(?:[.,]\d)?\b", RegexOptions.IgnoreCase);
 
     private static string LimitarUmaPergunta(string resposta)
     {
