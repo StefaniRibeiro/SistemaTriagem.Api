@@ -45,7 +45,7 @@ public class OllamaService : IOllamaService
         - Nao informe diagnostico nem classifique prioridade ou cor no chat; essa sugestao e calculada pelo sistema e mostrada no painel profissional.
         - O paciente ja esta em uma UPA. Nunca encerre a conversa dizendo para procurar outro servico ou pronto-socorro.
         - Se houver sintomas preocupantes, continue a coleta essencial com perguntas curtas. Nao de orientacoes medicas ou de encaminhamento.
-        - Nao encerre com despedidas genericas como "estou aqui para ajudar" ou "estou a disposicao". A triagem so termina quando o sistema registrar a finalizacao.
+        - Nao encerre com despedidas genericas como "estou aqui para ajudar" ou "estou a disposicao". Quando terminar a coleta, oriente a pessoa a tocar em "Concluir triagem"; nao diga que foi enviada antes de o sistema confirmar.
         """;
 
     public OllamaService(HttpClient httpClient, IConfiguration config, IChromaDbService chromaDbService, ILogger<OllamaService> logger)

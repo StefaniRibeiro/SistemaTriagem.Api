@@ -19,7 +19,7 @@ public class ChatbotController : ControllerBase
     private const string PerguntaFebre = "Você está com febre?";
     private const string PerguntaTemperatura = "Qual temperatura você mediu?";
     private const string PerguntaAlergiaMedicamento = "Voc\u00ea tem alergia a algum medicamento?";
-    private const string MensagemColetaConcluida = "J\u00e1 registrei as informa\u00e7\u00f5es principais. Toque em \"Concluir triagem\" para enviar ao profissional.";
+    private const string MensagemColetaConcluida = "J\u00e1 registrei as informa\u00e7\u00f5es principais. Toque em \"Concluir triagem\" para enviar aos profissionais de sa\u00fade.";
     private readonly AppDbContext _db;
     private readonly IOllamaService _ollamaService;
     private readonly ITriagemService _triagemService;
@@ -122,6 +122,11 @@ public class ChatbotController : ControllerBase
                 respostaTexto = "Entendi. Vou registrar o que você relatou para a equipe da unidade. " +
                     "O que mais você está sentindo?";
             }
+            if (ContemEncerramentoGenerico(respostaTexto))
+            {
+                respostaTexto = MensagemColetaConcluida;
+                coletaConcluida = true;
+            }
             respostaTexto = LimitarUmaPergunta(respostaTexto);
         }
 
@@ -148,6 +153,19 @@ public class ChatbotController : ControllerBase
         return texto.Contains("pronto-socorro") || texto.Contains("servico de emergencia") ||
             Regex.IsMatch(texto,
                 @"\b(procure|busque|va|dirija-se|ligue|acione)\b.{0,100}\b(unidade|hospital|pronto|emergencia|ajuda|profissional)\b");
+    }
+
+    private static bool ContemEncerramentoGenerico(string resposta)
+    {
+        var semAcentos = string.Concat(resposta
+            .Normalize(NormalizationForm.FormD)
+            .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark));
+        var texto = semAcentos.ToLowerInvariant().Replace('\u2011', '-');
+
+        return Regex.IsMatch(texto,
+                @"\b(se precisar|se precisar de algo|qualquer coisa).{0,80}\b(estou( por)? aqui|conte comigo|a disposicao)\b") ||
+            Regex.IsMatch(texto,
+                @"\b(estou aqui para ajudar|estou a disposicao|estarei a disposicao)\b");
     }
 
     private static bool RespondeuSimParaFebre(string resposta)
