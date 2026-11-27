@@ -65,7 +65,7 @@ public class TriagemController : ControllerBase
         triagem.Observacoes = request.Observacoes;
         triagem.FinalizadaEm = DateTime.UtcNow;
 
-        const string mensagemFinal = "Triagem realizada. Aguarde na unidade; a equipe chamará você pelo nome.";
+        const string mensagemFinal = "Sua triagem foi concluída. Aguarde chamar pelo seu nome";
         triagem.Mensagens.Add(new Mensagem
         {
             TriagemId = triagem.Id,
