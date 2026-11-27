@@ -23,9 +23,13 @@ public class DashboardController : ControllerBase
     [HttpGet("resumo")]
     public async Task<ActionResult<DashboardResumoDto>> Resumo()
     {
-        var hoje = DateTime.UtcNow.Date;
+        var fusoSaoPaulo = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+        var hojeLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, fusoSaoPaulo).Date;
+        var inicioLocal = DateTime.SpecifyKind(hojeLocal, DateTimeKind.Unspecified);
+        var inicioUtc = TimeZoneInfo.ConvertTimeToUtc(inicioLocal, fusoSaoPaulo);
+        var fimUtc = TimeZoneInfo.ConvertTimeToUtc(inicioLocal.AddDays(1), fusoSaoPaulo);
 
-        var triagensHoje = _db.Triagens.Where(t => t.DataHora >= hoje);
+        var triagensHoje = _db.Triagens.Where(t => t.DataHora >= inicioUtc && t.DataHora < fimUtc);
 
         var resumo = new DashboardResumoDto
         {
