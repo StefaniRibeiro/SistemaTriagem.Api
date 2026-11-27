@@ -15,6 +15,8 @@ namespace SistemaTriagem.Api.Controllers;
 [Route("api/[controller]")]
 public class ChatbotController : ControllerBase
 {
+    private const int MaximoPerguntasAcompanhamento = 3;
+    private const string MensagemColetaConcluida = "J\u00e1 registrei as informa\u00e7\u00f5es principais. Toque em \"Concluir triagem\" para enviar ao profissional.";
     private readonly AppDbContext _db;
     private readonly IOllamaService _ollamaService;
     private readonly ITriagemService _triagemService;
@@ -68,15 +70,28 @@ public class ChatbotController : ControllerBase
             triagem.Prioridade = prioridadeSugerida.Value;
         await _db.SaveChangesAsync();
 
-        var historico = triagem.Mensagens
-            .OrderBy(m => m.Timestamp)
-            .Select(m => (m.Origem.ToString(), m.Conteudo));
+        var respostasAnteriores = triagem.Mensagens.Count(m => m.Origem == OrigemMensagem.Chatbot);
+        var perguntasAcompanhamento = Math.Max(0, respostasAnteriores - 1); // ignora a mensagem inicial
+        var coletaConcluida = perguntasAcompanhamento >= MaximoPerguntasAcompanhamento;
 
-        var respostaTexto = await _ollamaService.GerarRespostaTriagemAsync(historico, request.Conteudo);
-        if (ContemEncaminhamentoParaOutroServico(respostaTexto))
+        string respostaTexto;
+        if (coletaConcluida)
         {
-            respostaTexto = "Entendi. Vou registrar o que você relatou para a equipe da unidade. " +
-                "O que mais você está sentindo?";
+            respostaTexto = MensagemColetaConcluida;
+        }
+        else
+        {
+            var historico = triagem.Mensagens
+                .OrderBy(m => m.Timestamp)
+                .Select(m => (m.Origem.ToString(), m.Conteudo));
+
+            respostaTexto = await _ollamaService.GerarRespostaTriagemAsync(historico, request.Conteudo);
+            if (ContemEncaminhamentoParaOutroServico(respostaTexto))
+            {
+                respostaTexto = "Entendi. Vou registrar o que voc\u00ea relatou para a equipe da unidade. " +
+                    "O que mais voc\u00ea est\u00e1 sentindo?";
+            }
+            respostaTexto = LimitarUmaPergunta(respostaTexto);
         }
 
         var mensagemChatbot = new Mensagem
@@ -88,7 +103,7 @@ public class ChatbotController : ControllerBase
         _db.Mensagens.Add(mensagemChatbot);
         await _db.SaveChangesAsync();
 
-        return Ok(new EnviarMensagemResponse(respostaTexto, mensagemPaciente.Id, mensagemChatbot.Id));
+        return Ok(new EnviarMensagemResponse(respostaTexto, mensagemPaciente.Id, mensagemChatbot.Id, coletaConcluida));
     }
 
     /// <summary>Retorna o histórico de mensagens de uma triagem (usado para renderizar a Tela 2).</summary>
@@ -102,6 +117,18 @@ public class ChatbotController : ControllerBase
         return texto.Contains("pronto-socorro") || texto.Contains("servico de emergencia") ||
             Regex.IsMatch(texto,
                 @"\b(procure|busque|va|dirija-se|ligue|acione)\b.{0,100}\b(unidade|hospital|pronto|emergencia|ajuda|profissional)\b");
+    }
+
+    private static string LimitarUmaPergunta(string resposta)
+    {
+        var primeiraPergunta = resposta.IndexOf('?');
+        if (primeiraPergunta < 0)
+            return resposta.Trim();
+
+        var perguntaSeguinte = resposta.IndexOf('?', primeiraPergunta + 1);
+        return perguntaSeguinte < 0
+            ? resposta.Trim()
+            : resposta[..(primeiraPergunta + 1)].Trim();
     }
 
     [HttpGet("{triagemId:int}/historico")]

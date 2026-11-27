@@ -17,7 +17,11 @@ public record IdentificarPacienteResponse(int PacienteId, int TriagemId, DadosCa
 
 // ---------- Chatbot (RF03, RF04, RF06) ----------
 public record EnviarMensagemRequest(int TriagemId, string Conteudo);
-public record EnviarMensagemResponse(string RespostaChatbot, int MensagemPacienteId, int MensagemChatbotId);
+public record EnviarMensagemResponse(
+    string RespostaChatbot,
+    int MensagemPacienteId,
+    int MensagemChatbotId,
+    bool ColetaConcluida);
 
 // ---------- Finalização da triagem (RF07, RF08, RF11) ----------
 public record SintomaInputDto(string Descricao, int? Intensidade, string? Duracao, string? DiscriminadorManchester);
