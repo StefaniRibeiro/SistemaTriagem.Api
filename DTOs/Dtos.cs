@@ -52,13 +52,14 @@ public class TriagemDetalheDto : TriagemResumoDto
 }
 
 public record MensagemDto(string Origem, string Conteudo, DateTime Timestamp);
+public record AtualizarStatusTriagemRequest(string Status);
 
 public class DashboardResumoDto
 {
     public int TriagensHoje { get; set; }
     public int Aguardando { get; set; }
     public int Urgentes { get; set; }
-    public int Finalizados { get; set; }
+    public int Atendidas { get; set; }
 }
 
 // ---------- Autenticação ----------

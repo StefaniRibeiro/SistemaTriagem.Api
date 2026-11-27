@@ -11,7 +11,9 @@ public enum StatusTriagem
 {
     EmAndamento,
     Finalizada,
-    Cancelada
+    Cancelada,
+    EmAtendimento,
+    Atendida
 }
 
 /// <summary>

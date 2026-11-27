@@ -34,10 +34,10 @@ public class DashboardController : ControllerBase
         var resumo = new DashboardResumoDto
         {
             TriagensHoje = await triagensHoje.CountAsync(),
-            Aguardando = await triagensHoje.CountAsync(t => t.Status == StatusTriagem.EmAndamento),
+            Aguardando = await triagensHoje.CountAsync(t => t.Status == StatusTriagem.Finalizada),
             Urgentes = await triagensHoje.CountAsync(t =>
                 t.Prioridade == PrioridadeTriagem.Emergente || t.Prioridade == PrioridadeTriagem.MuitoUrgente),
-            Finalizados = await triagensHoje.CountAsync(t => t.Status == StatusTriagem.Finalizada)
+            Atendidas = await triagensHoje.CountAsync(t => t.Status == StatusTriagem.Atendida)
         };
 
         return Ok(resumo);
@@ -75,6 +75,32 @@ public class DashboardController : ControllerBase
         }).ToListAsync();
 
         return Ok(resultado);
+    }
+
+    [HttpPatch("triagens/{id:int}/status")]
+    public async Task<IActionResult> AtualizarStatus(int id, [FromBody] AtualizarStatusTriagemRequest request)
+    {
+        if (!Enum.TryParse<StatusTriagem>(request.Status, true, out var novoStatus) ||
+            !Enum.IsDefined(novoStatus))
+            return BadRequest("Status inválido.");
+
+        var triagem = await _db.Triagens.FirstOrDefaultAsync(t => t.Id == id);
+        if (triagem is null)
+            return NotFound("Triagem não encontrada.");
+
+        var transicaoPermitida = triagem.Status switch
+        {
+            StatusTriagem.EmAndamento => novoStatus is StatusTriagem.EmAndamento or StatusTriagem.Cancelada,
+            _ => novoStatus is StatusTriagem.Finalizada or StatusTriagem.EmAtendimento or StatusTriagem.Atendida or StatusTriagem.Cancelada,
+        };
+
+        if (!transicaoPermitida)
+            return BadRequest("Não é possível retornar uma triagem concluída para o chat.");
+
+        triagem.Status = novoStatus;
+        await _db.SaveChangesAsync();
+
+        return Ok(new { status = triagem.Status.ToString() });
     }
 
     /// <summary>RF10: detalhes completos de uma triagem específica.</summary>
