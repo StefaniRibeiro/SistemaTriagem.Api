@@ -20,6 +20,8 @@ public class ChatbotController : ControllerBase
     private const string PerguntaTemperatura = "Qual temperatura você mediu?";
     private const string PerguntaAlergiaMedicamento = "Voc\u00ea tem alergia a algum medicamento?";
     private const string MensagemColetaConcluida = "J\u00e1 registrei as informa\u00e7\u00f5es principais. Toque em \"Concluir triagem\" para enviar aos profissionais de sa\u00fade.";
+    private const string PrefixoFalhaModelo = "No momento n\u00e3o consigo me comunicar com o assistente de IA.";
+    private const string MensagemFalhaModelo = "N\u00e3o foi poss\u00edvel continuar a conversa com o assistente. Toque em \"Concluir triagem\" para enviar as informa\u00e7\u00f5es registradas aos profissionais de sa\u00fade.";
     private readonly AppDbContext _db;
     private readonly IOllamaService _ollamaService;
     private readonly ITriagemService _triagemService;
@@ -117,12 +119,17 @@ public class ChatbotController : ControllerBase
                 .Select(m => (m.Origem.ToString(), m.Conteudo));
 
             respostaTexto = await _ollamaService.GerarRespostaTriagemAsync(historico, request.Conteudo);
-            if (ContemEncaminhamentoParaOutroServico(respostaTexto))
+            if (respostaTexto.StartsWith(PrefixoFalhaModelo, StringComparison.OrdinalIgnoreCase))
+            {
+                respostaTexto = MensagemFalhaModelo;
+                coletaConcluida = true;
+            }
+            else if (ContemEncaminhamentoParaOutroServico(respostaTexto))
             {
                 respostaTexto = "Entendi. Vou registrar o que você relatou para a equipe da unidade. " +
                     "O que mais você está sentindo?";
             }
-            if (ContemEncerramentoGenerico(respostaTexto))
+            else if (ContemEncerramentoGenerico(respostaTexto))
             {
                 respostaTexto = MensagemColetaConcluida;
                 coletaConcluida = true;
