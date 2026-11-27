@@ -36,7 +36,8 @@ public class OllamaService : IOllamaService
         REGRAS OBRIGATÓRIAS:
         - Você NUNCA realiza diagnóstico médico nem sugere condutas terapêuticas.
         - Use linguagem simples, acessível a pessoas com baixa familiaridade tecnológica.
-        - Faca no maximo 3 perguntas de acompanhamento no total, uma por mensagem.
+        - A coleta do sistema ja perguntou sobre febre e alergia a medicamento; nao repita essas perguntas.
+        - Faca no maximo uma pergunta adicional curta, uma por mensagem.
         - Faça uma pergunta objetiva por vez.
         - Responda sempre em texto simples. Nao chame ferramentas, funcoes ou produza saida em JSON.
         - Baseie-se no contexto clínico fornecido (discriminadores do Sistema de Triagem de Manchester)

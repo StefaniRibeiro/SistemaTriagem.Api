@@ -16,6 +16,8 @@ namespace SistemaTriagem.Api.Controllers;
 public class ChatbotController : ControllerBase
 {
     private const int MaximoPerguntasAcompanhamento = 3;
+    private const string PerguntaFebre = "Voc\u00ea est\u00e1 com febre?";
+    private const string PerguntaAlergiaMedicamento = "Voc\u00ea tem alergia a algum medicamento?";
     private const string MensagemColetaConcluida = "J\u00e1 registrei as informa\u00e7\u00f5es principais. Toque em \"Concluir triagem\" para enviar ao profissional.";
     private readonly AppDbContext _db;
     private readonly IOllamaService _ollamaService;
@@ -78,6 +80,14 @@ public class ChatbotController : ControllerBase
         if (coletaConcluida)
         {
             respostaTexto = MensagemColetaConcluida;
+        }
+        else if (perguntasAcompanhamento == 0)
+        {
+            respostaTexto = PerguntaFebre;
+        }
+        else if (perguntasAcompanhamento == 1)
+        {
+            respostaTexto = PerguntaAlergiaMedicamento;
         }
         else
         {
