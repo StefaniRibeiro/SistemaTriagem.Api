@@ -51,23 +51,19 @@ public class PacienteController : ControllerBase
                 Sexo = dados.Sexo,
                 Telefone = dados.Telefone
             };
-            _db.Pacientes.Add(paciente);
-            await _db.SaveChangesAsync();
         }
 
         var triagem = new Triagem
         {
-            PacienteId = paciente.Id,
+            Paciente = paciente,
             Status = StatusTriagem.EmAndamento,
             DataHora = DateTime.UtcNow
         };
         _db.Triagens.Add(triagem);
-        await _db.SaveChangesAsync();
 
         // Primeira mensagem de boas-vindas do chatbot já é registrada (RF06).
-        _db.Mensagens.Add(new Mensagem
+        triagem.Mensagens.Add(new Mensagem
         {
-            TriagemId = triagem.Id,
             Origem = OrigemMensagem.Chatbot,
             Conteudo = $"Olá, {paciente.Nome.Split(' ')[0]}! O que você está sentindo hoje? " +
                        "Conte com suas palavras. Depois vou fazer algumas perguntas, uma de cada vez, " +
@@ -75,6 +71,6 @@ public class PacienteController : ControllerBase
         });
         await _db.SaveChangesAsync();
 
-        return Ok(new IdentificarPacienteResponse(paciente.Id, triagem.Id, dados));
+        return Ok(new IdentificarPacienteResponse(paciente.Id, triagem.Id, dados, triagem.Mensagens.First().Conteudo));
     }
 }

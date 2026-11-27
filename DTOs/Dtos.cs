@@ -13,7 +13,7 @@ public class DadosCadastraisDto
     public string? Telefone { get; set; }
 }
 
-public record IdentificarPacienteResponse(int PacienteId, int TriagemId, DadosCadastraisDto Dados);
+public record IdentificarPacienteResponse(int PacienteId, int TriagemId, DadosCadastraisDto Dados, string MensagemInicial);
 
 // ---------- Chatbot (RF03, RF04, RF06) ----------
 public record EnviarMensagemRequest(int TriagemId, string Conteudo);
