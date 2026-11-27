@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using MySqlConnector;
 using SistemaTriagem.Api.Data;
 using SistemaTriagem.Api.Services;
 using System.Text;
@@ -10,8 +11,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ---------- Banco de Dados (MySQL via Pomelo) ----------
 var connectionString = builder.Configuration.GetConnectionString("Default");
+var mysqlConnectionString = new MySqlConnectionStringBuilder(connectionString!)
+{
+    DateTimeKind = MySqlDateTimeKind.Utc
+}.ConnectionString;
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseMySql(mysqlConnectionString, ServerVersion.AutoDetect(mysqlConnectionString)));
 
 // ---------- Serviços da aplicação ----------
 builder.Services.AddHttpClient<ICadsusService, CadsusService>();
